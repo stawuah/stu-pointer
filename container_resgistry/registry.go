@@ -1,4 +1,4 @@
-package containerresgistry
+package container_resgistry
 
 import (
 	"errors"
@@ -24,8 +24,8 @@ type ContainerConfig struct {
 
 type ContainerRegistry struct {
 	containers    map[string]*container.Container
-	totalCount    int
-	runningCount  int
+	TotalCount    int
+	RunningCount  int
 	maxContainers int
 	createdAt     time.Time
 	lastUpdate    time.Time
@@ -37,9 +37,9 @@ func NewContainerResgistry(maxContainers int) *ContainerRegistry {
 
 	return &ContainerRegistry{
 		containers:    make(map[string]*container.Container),
-		totalCount:    0,
-		runningCount:  0,
-		maxContainers: 0,
+		TotalCount:    0,
+		RunningCount:  0,
+		maxContainers: maxContainers,
 		createdAt:     time.Now(),
 		lastUpdate:    time.Now(),
 		stats:         make(map[string]int),
@@ -51,7 +51,7 @@ func NewContainerResgistry(maxContainers int) *ContainerRegistry {
 // CreateContainer creates container from config and adds to registry
 func (r *ContainerRegistry) CreateContainer(config *ContainerConfig) (*container.Container, error) {
 	// Check if we've hit maxContainers limit
-	if r.totalCount >= r.maxContainers {
+	if r.TotalCount >= r.maxContainers {
 		return nil, errors.New("maximum container limit reached")
 	}
 
@@ -74,7 +74,7 @@ func (r *ContainerRegistry) CreateContainer(config *ContainerConfig) (*container
 	// Add to containers map
 	r.containers[new_container.ID] = new_container
 	// Update totalCount
-	r.totalCount++
+	r.TotalCount++
 
 	r.lastUpdate = time.Now()
 
@@ -97,9 +97,9 @@ func (r *ContainerRegistry) StartContainer(id string) error {
 	}
 	// Update container status to "running"
 
-	connect_contained.Status = "running"
+	connect_contained.UpdateStatus("running")
 	// Increment runningCount
-	r.runningCount++
+	r.RunningCount++
 	// Update lastUpdate time
 	r.lastUpdate = time.Now()
 	// Call event handlers with "started" event
@@ -119,14 +119,14 @@ func (r *ContainerRegistry) StopContainer(id string) error {
 	}
 	// Update container status to "running"
 
-	connect_contained.Status = "stopped"
+	connect_contained.UpdateStatus("stopped")
 	// Increment runningCount
-	r.runningCount++
+	r.RunningCount--
 	// Update lastUpdate time
 	r.lastUpdate = time.Now()
 	// Call event handlers with "started" event
 	for _, running_container := range r.eventHandlers {
-		running_container("started", connect_contained)
+		running_container("stopped", connect_contained)
 	}
 
 	return nil

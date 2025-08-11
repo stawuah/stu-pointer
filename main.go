@@ -5,8 +5,15 @@ import (
 	"time"
 
 	"github.com/stawuah/container/container"
+	"github.com/stawuah/container/container_resgistry"
 	"github.com/stawuah/container/image"
 )
+
+// eventHandler is a function that will be registered with the registry.
+// It simply prints the event type and the container's ID.
+func eventHandler(eventType string, con *container.Container) {
+	fmt.Printf("Event received: %s for container ID %s\n", eventType, con.ID)
+}
 
 func main() {
 	// Initialize a container with some initial values
@@ -87,4 +94,78 @@ func main() {
 	fmt.Printf("New Downloads: %d\n", myDockerImage.Downloads)
 	fmt.Printf("Create new image name %v\n", myDockerImage.CreateImageName("stawuah", "1.24.5"))
 	fmt.Printf("Full Name after crfeating a new one: %s\n", myDockerImage.GetFullName())
+
+	// Create registry using the constructor
+	fmt.Println("\n--- Creating registry ---")
+	reg := container_resgistry.NewContainerResgistry(5)
+
+	// Add an event handler that prints events
+	reg.AddEventHandler(eventHandler)
+
+	// Create 3 different ContainerConfig instances
+	fmt.Println("\n--- Creating container configs ---")
+	config1 := &container_resgistry.ContainerConfig{
+		Name:  "web-server-1",
+		Image: "nginx:latest",
+		CPU:   1.0,
+	}
+	config2 := &container_resgistry.ContainerConfig{
+		Name:  "database-server",
+		Image: "postgres:13",
+		CPU:   2.0,
+	}
+	config3 := &container_resgistry.ContainerConfig{
+		Name:  "web-server-2",
+		Image: "nginx:latest",
+		CPU:   1.0,
+	}
+
+	// Create containers from configs
+	fmt.Println("\n--- Creating containers from configs ---")
+	c1, err := reg.CreateContainer(config1)
+	if err != nil {
+		fmt.Printf("Error creating container 1: %v\n", err)
+	}
+	c2, err := reg.CreateContainer(config2)
+	if err != nil {
+		fmt.Printf("Error creating container 2: %v\n", err)
+	}
+	c3, err := reg.CreateContainer(config3)
+	if err != nil {
+		fmt.Printf("Error creating container 3: %v\n", err)
+	}
+
+	// Start 2 containers, stop 1
+	fmt.Println("\n--- Starting and stopping containers ---")
+	if c1 != nil {
+		reg.StartContainer(c1.ID)
+	}
+	if c2 != nil {
+		reg.StartContainer(c2.ID)
+	}
+	if c3 != nil {
+		reg.StopContainer(c3.ID)
+	}
+
+	// For demonstration, manually update the status of c1 to "stopped"
+	// since you don't have a StopContainer method yet.
+	if c1 != nil {
+		c1.UpdateStatus("stopped")
+		// reg.StopContainer(c3.ID)
+	}
+
+	// List running containers
+	fmt.Println("\n--- Listing running containers ---")
+	runningContainers := reg.ListRunningContainers()
+	fmt.Printf("Found %d running container(s):\n", len(runningContainers))
+	for _, c := range runningContainers {
+		fmt.Printf(" - ID: %s, Name: %s\n", c.ID, c.Name)
+	}
+
+	// Print final stats
+	fmt.Println("\n--- Final registry stats ---")
+	stats := reg.GetStats()
+	fmt.Printf("Total containers: %d\n", reg.TotalCount)
+	fmt.Printf("Running containers: %d\n", reg.RunningCount)
+	fmt.Printf("Registry stats map: %v\n", len(stats))
 }
